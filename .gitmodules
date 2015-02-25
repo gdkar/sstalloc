@@ -1,0 +1,6 @@
+[submodule "SSMalloc"]
+	path = SSMalloc
+	url = git@github.com:Naruil/SSMalloc.git
+[submodule "talloc"]
+	path = talloc
+	url = git@github.com:gdkar/talloc.git
