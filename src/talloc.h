@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-//#include <ssmalloc.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -810,85 +810,6 @@ void *talloc_find_parent_bytype(const void *ptr, #type);
 #endif
 
 /**
- * @brief Allocate a talloc pool.
- *
- * A talloc pool is a pure optimization for specific situations. In the
- * release process for Samba 3.2 we found out that we had become considerably
- * slower than Samba 3.0 was. Profiling showed that malloc(3) was a large CPU
- * consumer in benchmarks. For Samba 3.2 we have internally converted many
- * static buffers to dynamically allocated ones, so malloc(3) being beaten
- * more was no surprise. But it made us slower.
- *
- * talloc_pool() is an optimization to call malloc(3) a lot less for the use
- * pattern Samba has: The SMB protocol is mainly a request/response protocol
- * where we have to allocate a certain amount of memory per request and free
- * that after the SMB reply is sent to the client.
- *
- * talloc_pool() creates a talloc chunk that you can use as a talloc parent
- * exactly as you would use any other ::TALLOC_CTX. The difference is that
- * when you talloc a child of this pool, no malloc(3) is done. Instead, talloc
- * just increments a pointer inside the talloc_pool. This also works
- * recursively. If you use the child of the talloc pool as a parent for
- * grand-children, their memory is also taken from the talloc pool.
- *
- * If there is not enough memory in the pool to allocate the new child,
- * it will create a new talloc chunk as if the parent was a normal talloc
- * context.
- *
- * If you talloc_free() children of a talloc pool, the memory is not given
- * back to the system. Instead, free(3) is only called if the talloc_pool()
- * itself is released with talloc_free().
- *
- * The downside of a talloc pool is that if you talloc_move() a child of a
- * talloc pool to a talloc parent outside the pool, the whole pool memory is
- * not free(3)'ed until that moved chunk is also talloc_free()ed.
- *
- * @param[in]  context  The talloc context to hang the result off.
- *
- * @param[in]  size     Size of the talloc pool.
- *
- * @return              The allocated talloc pool, NULL on error.
- */
-void *talloc_pool(const void *context, size_t size);
-
-#ifdef DOXYGEN
-/**
- * @brief Allocate a talloc object as/with an additional pool.
- *
- * This is like talloc_pool(), but's it's more flexible
- * and allows an object to be a pool for its children.
- *
- * @param[in] ctx                   The talloc context to hang the result off.
- *
- * @param[in] type                  The type that we want to allocate.
- *
- * @param[in] num_subobjects        The expected number of subobjects, which will
- *                                  be allocated within the pool. This allocates
- *                                  space for talloc_chunk headers.
- *
- * @param[in] total_subobjects_size The size that all subobjects can use in total.
- *
- *
- * @return              The allocated talloc object, NULL on error.
- */
-void *talloc_pooled_object(const void *ctx, #type,
-			   unsigned num_subobjects,
-			   size_t total_subobjects_size);
-#else
-#define talloc_pooled_object(_ctx, _type, \
-			     _num_subobjects, \
-			     _total_subobjects_size) \
-	(_type *)_talloc_pooled_object((_ctx), sizeof(_type), #_type, \
-					(_num_subobjects), \
-					(_total_subobjects_size))
-void *_talloc_pooled_object(const void *ctx,
-			    size_t type_size,
-			    const char *type_name,
-			    unsigned num_subobjects,
-			    size_t total_subobjects_size);
-#endif
-
-/**
  * @brief Free a talloc chunk and NULL out the pointer.
  *
  * TALLOC_FREE() frees a pointer and sets it to NULL. Use this if you want
@@ -898,7 +819,6 @@ void *_talloc_pooled_object(const void *ctx,
  * @param[in]  ctx      The chunk to be freed.
  */
 #define TALLOC_FREE(ctx) do { if (ctx != NULL) { talloc_free(ctx); ctx=NULL; } } while(0)
-
 /* @} ******************************************************************/
 
 /**
@@ -909,7 +829,6 @@ void *_talloc_pooled_object(const void *ctx,
  *
  * @{
  */
-
 /**
  * @brief Increase the reference count of a talloc chunk.
  *
@@ -927,7 +846,6 @@ void *_talloc_pooled_object(const void *ctx,
  * @return              0 on success, -1 on error.
  */
 int talloc_increase_ref_count(const void *ptr);
-
 /**
  * @brief Get the number of references to a talloc chunk.
  *
@@ -936,7 +854,6 @@ int talloc_increase_ref_count(const void *ptr);
  * @return              The number of references.
  */
 size_t talloc_reference_count(const void *ptr);
-
 #ifdef DOXYGEN
 /**
  * @brief Create an additional talloc parent to a pointer.
@@ -1025,7 +942,6 @@ void *_talloc_reference_loc(const void *context, const void *ptr, const char *lo
  * @endcode
  */
 int talloc_unlink(const void *context, void *ptr);
-
 /**
  * @brief Provide a talloc context that is freed at program exit.
  *
@@ -1045,7 +961,6 @@ int talloc_unlink(const void *context, void *ptr);
  * @return              A talloc context, NULL on error.
  */
 void *talloc_autofree_context(void);
-
 /**
  * @brief Get the size of a talloc chunk.
  *
@@ -1058,7 +973,6 @@ void *talloc_autofree_context(void);
  * @return              The size of the talloc chunk.
  */
 size_t talloc_get_size(const void *ctx);
-
 /**
  * @brief Show the parentage of a context.
  *
@@ -1067,7 +981,6 @@ size_t talloc_get_size(const void *ctx);
  * @param[in]  file               The output to use, a file, stdout or stderr.
  */
 void talloc_show_parents(const void *context, FILE *file);
-
 /**
  * @brief Check if a context is parent of a talloc chunk.
  *
@@ -1080,7 +993,6 @@ void talloc_show_parents(const void *context, FILE *file);
  * @return              Return 1 if this is the case, 0 if not.
  */
 int talloc_is_parent(const void *context, const void *ptr);
-
 /**
  * @brief Change the parent context of a talloc pointer.
  *
@@ -1100,9 +1012,7 @@ int talloc_is_parent(const void *context, const void *ptr);
  *                      failure modes.
  */
 void *talloc_reparent(const void *old_parent, const void *new_parent, const void *ptr);
-
 /* @} ******************************************************************/
-
 /**
  * @defgroup talloc_array The talloc array functions
  * @ingroup talloc
@@ -1111,7 +1021,6 @@ void *talloc_reparent(const void *old_parent, const void *new_parent, const void
  *
  * @{
  */
-
 #ifdef DOXYGEN
 /**
  * @brief Allocate an array.
@@ -1166,7 +1075,6 @@ void *talloc_array_size(const void *ctx, size_t size, unsigned count);
 #else
 #define talloc_array_size(ctx, size, count) _talloc_array(ctx, size, count, __location__)
 #endif
-
 #ifdef DOXYGEN
 /**
  * @brief Allocate an array into a typed pointer.
@@ -1206,7 +1114,6 @@ size_t talloc_array_length(const void *ctx);
 #else
 #define talloc_array_length(ctx) (talloc_get_size(ctx)/sizeof(*ctx))
 #endif
-
 #ifdef DOXYGEN
 /**
  * @brief Allocate a zero-initialized array
@@ -1234,7 +1141,6 @@ void *_talloc_zero_array(const void *ctx,
 			 unsigned count,
 			 const char *name);
 #endif
-
 #ifdef DOXYGEN
 /**
  * @brief Change the size of a talloc array.
@@ -1271,7 +1177,6 @@ void *talloc_realloc(const void *ctx, void *ptr, #type, size_t count);
 #define talloc_realloc(ctx, p, type, count) (type *)_talloc_realloc_array(ctx, p, sizeof(type), count, #type)
 void *_talloc_realloc_array(const void *ctx, void *ptr, size_t el_size, unsigned count, const char *name);
 #endif
-
 #ifdef DOXYGEN
 /**
  * @brief Untyped realloc to change the size of a talloc array.
@@ -1292,7 +1197,6 @@ void *talloc_realloc_size(const void *ctx, void *ptr, size_t size);
 #define talloc_realloc_size(ctx, ptr, size) _talloc_realloc(ctx, ptr, size, __location__)
 void *_talloc_realloc(const void *context, void *ptr, size_t size, const char *name);
 #endif
-
 /**
  * @brief Provide a function version of talloc_realloc_size.
  *
@@ -1311,9 +1215,7 @@ void *_talloc_realloc(const void *context, void *ptr, size_t size, const char *n
  * @return              The new chunk, NULL on error.
  */
 void *talloc_realloc_fn(const void *context, void *ptr, size_t size);
-
 /* @} ******************************************************************/
-
 /**
  * @defgroup talloc_string The talloc string functions.
  * @ingroup talloc
@@ -1321,7 +1223,6 @@ void *talloc_realloc_fn(const void *context, void *ptr, size_t size);
  * talloc string allocation and manipulation functions.
  * @{
  */
-
 /**
  * @brief Duplicate a string into a talloc chunk.
  *
@@ -1346,7 +1247,6 @@ void *talloc_realloc_fn(const void *context, void *ptr, size_t size);
  * @return              The duplicated string, NULL on error.
  */
 char *talloc_strdup(const void *t, const char *p);
-
 /**
  * @brief Append a string to given string.
  *
@@ -1372,7 +1272,6 @@ char *talloc_strdup(const void *t, const char *p);
  * @see talloc_strdup_append_buffer()
  */
 char *talloc_strdup_append(char *s, const char *a);
-
 /**
  * @brief Append a string to a given buffer.
  *
@@ -1408,7 +1307,6 @@ char *talloc_strdup_append(char *s, const char *a);
  * @see talloc_array_length()
  */
 char *talloc_strdup_append_buffer(char *s, const char *a);
-
 /**
  * @brief Duplicate a length-limited string into a talloc chunk.
  *
@@ -1430,7 +1328,6 @@ char *talloc_strdup_append_buffer(char *s, const char *a);
  * @return              The duplicated string, NULL on error.
  */
 char *talloc_strndup(const void *t, const char *p, size_t n);
-
 /**
  * @brief Append at most n characters of a string to given string.
  *
@@ -1459,7 +1356,6 @@ char *talloc_strndup(const void *t, const char *p, size_t n);
  * @see talloc_strndup_append_buffer()
  */
 char *talloc_strndup_append(char *s, const char *a, size_t n);
-
 /**
  * @brief Append at most n characters of a string to given buffer
  *
@@ -1498,7 +1394,6 @@ char *talloc_strndup_append(char *s, const char *a, size_t n);
  * @see talloc_array_length()
  */
 char *talloc_strndup_append_buffer(char *s, const char *a, size_t n);
-
 /**
  * @brief Format a string given a va_list.
  *
@@ -1521,7 +1416,6 @@ char *talloc_strndup_append_buffer(char *s, const char *a, size_t n);
  * @return              The formatted string, NULL on error.
  */
 char *talloc_vasprintf(const void *t, const char *fmt, va_list ap) PRINTF_ATTRIBUTE(2,0);
-
 /**
  * @brief Format a string given a va_list and append it to the given destination
  *        string.
@@ -1537,7 +1431,6 @@ char *talloc_vasprintf(const void *t, const char *fmt, va_list ap) PRINTF_ATTRIB
  * @see talloc_vasprintf()
  */
 char *talloc_vasprintf_append(char *s, const char *fmt, va_list ap) PRINTF_ATTRIBUTE(2,0);
-
 /**
  * @brief Format a string given a va_list and append it to the given destination
  *        buffer.
@@ -1553,7 +1446,6 @@ char *talloc_vasprintf_append(char *s, const char *fmt, va_list ap) PRINTF_ATTRI
  * @see talloc_vasprintf()
  */
 char *talloc_vasprintf_append_buffer(char *s, const char *fmt, va_list ap) PRINTF_ATTRIBUTE(2,0);
-
 /**
  * @brief Format a string.
  *
@@ -1575,7 +1467,6 @@ char *talloc_vasprintf_append_buffer(char *s, const char *fmt, va_list ap) PRINT
  * @return              The formatted string, NULL on error.
  */
 char *talloc_asprintf(const void *t, const char *fmt, ...) PRINTF_ATTRIBUTE(2,3);
-
 /**
  * @brief Append a formatted string to another string.
  *
@@ -1601,7 +1492,6 @@ char *talloc_asprintf(const void *t, const char *fmt, ...) PRINTF_ATTRIBUTE(2,3)
  * @return              The formatted string, NULL on error.
  */
 char *talloc_asprintf_append(char *s, const char *fmt, ...) PRINTF_ATTRIBUTE(2,3);
-
 /**
  * @brief Append a formatted string to another string.
  *
@@ -1638,9 +1528,7 @@ char *talloc_asprintf_append(char *s, const char *fmt, ...) PRINTF_ATTRIBUTE(2,3
  * @see talloc_asprintf_append()
  */
 char *talloc_asprintf_append_buffer(char *s, const char *fmt, ...) PRINTF_ATTRIBUTE(2,3);
-
 /* @} ******************************************************************/
-
 /**
  * @defgroup talloc_debug The talloc debugging support functions
  * @ingroup talloc
@@ -1650,7 +1538,6 @@ char *talloc_asprintf_append_buffer(char *s, const char *fmt, ...) PRINTF_ATTRIB
  *
  * @{
  */
-
 /**
  * @brief Walk a complete talloc hierarchy.
  *
@@ -1699,7 +1586,6 @@ void talloc_report_depth_cb(const void *ptr, int depth, int max_depth,
  * @param[in]  f        The file handle to print to.
  */
 void talloc_report_depth_file(const void *ptr, int depth, int max_depth, FILE *f);
-
 /**
  * @brief Print a summary report of all memory used by ptr.
  *
@@ -1729,7 +1615,6 @@ void talloc_report_depth_file(const void *ptr, int depth, int max_depth, FILE *f
  * @see talloc_report()
  */
 void talloc_report_full(const void *ptr, FILE *f);
-
 /**
  * @brief Print a summary report of all memory used by ptr.
  *
@@ -1757,7 +1642,6 @@ void talloc_report_full(const void *ptr, FILE *f);
  * @see talloc_report_full()
  */
 void talloc_report(const void *ptr, FILE *f);
-
 /**
  * @brief Enable tracking the use of NULL memory contexts.
  *
@@ -1766,7 +1650,6 @@ void talloc_report(const void *ptr, FILE *f);
  * reporting call via talloc_report_null_full();
  */
 void talloc_enable_null_tracking(void);
-
 /**
  * @brief Enable tracking the use of NULL memory contexts.
  *
@@ -1775,14 +1658,12 @@ void talloc_enable_null_tracking(void);
  * reporting call via talloc_report_null_full();
  */
 void talloc_enable_null_tracking_no_autofree(void);
-
 /**
  * @brief Disable tracking of the NULL memory context.
  *
  * This disables tracking of the NULL memory context.
  */
 void talloc_disable_null_tracking(void);
-
 /**
  * @brief Enable leak report when a program exits.
  *
@@ -1838,7 +1719,6 @@ void talloc_enable_leak_report(void);
  * @endcode
  */
 void talloc_enable_leak_report_full(void);
-
 /**
  * @brief Set a custom "abort" function that is called on serious error.
  *
@@ -1910,16 +1790,6 @@ void talloc_set_log_stderr(void);
 int talloc_set_memlimit(const void *ctx, size_t max_size);
 
 /* @} ******************************************************************/
-
-#if TALLOC_DEPRECATED
-#define talloc_zero_p(ctx, type) talloc_zero(ctx, type)
-#define talloc_p(ctx, type) talloc(ctx, type)
-#define talloc_array_p(ctx, type, count) talloc_array(ctx, type, count)
-#define talloc_realloc_p(ctx, p, type, count) talloc_realloc(ctx, p, type, count)
-#define talloc_destroy(ctx) talloc_free(ctx)
-#define talloc_append_string(c, s, a) (s?talloc_strdup_append(s,a):talloc_strdup(c, a))
-#endif
-
 #ifndef TALLOC_MAX_DEPTH
 #define TALLOC_MAX_DEPTH 10000
 #endif

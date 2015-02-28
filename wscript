@@ -96,13 +96,13 @@ def build(bld):
     if not bld.CONFIG_SET('USING_SYSTEM_TALLOC'):
 
         bld.SAMBA_LIBRARY('talloc',
-                          ['ssmalloc.c','pytalloc.c','talloc.c'],
-                          deps='replace',
+                          ['ssmalloc.c','talloc.c'],
+                          deps='replace pthread',
                           abi_directory='ABI',
                           abi_match='talloc* _talloc*',
                           hide_symbols=True,
                           vnum=VERSION,
-                          public_headers='talloc.h',
+                          public_headers=['include/talloc.h','include/ssmalloc.h'],
                           pc_files='talloc.pc',
                           public_headers_install=not private_library,
                           private_library=private_library,

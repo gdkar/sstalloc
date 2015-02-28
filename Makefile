@@ -1,8 +1,8 @@
-CFLAGS += -O3 -Wstrict-prototypes -fomit-frame-pointer -g -Wall
+CFLAGS += -g -ggdb  -O3 -Wstrict-prototypes -fomit-frame-pointer  -Wall -std=c11 -D_GNU_SOURCE=1 -D_ISOC11_SOURCE=1
 libdir = /usr/lib
 LDFLAGS += -lpthread -rpath $(libdir) -version-info 1
 CC = gcc
-CXX = g++
+CXX = gcc
 LD = ld
 ARCH = $(shell uname -m)
 
@@ -19,12 +19,12 @@ endif
 
 define compile_rule
 	libtool --mode=compile --tag=CC \
-	$(CC) $(CFLAGS) $(CPPFLAGS) -Iinclude -Iinclude-$(ARCH) -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -Ilib/replace -Iinclude -Iinclude-$(ARCH) -c $<
 endef
 
 define cxx_compile_rule
 	libtool --mode=compile --tag=CC \
-	$(CXX) $(CFLAGS) $(CPPFLAGS) -Iinclude -Iinclude-$(ARCH) -c $<
+	$(CXX) $(CFLAGS) $(CPPFLAGS) -Ilib/replace -Iinclude -Iinclude-$(ARCH) -c $<
 endef
 
 define link_rule
@@ -32,20 +32,20 @@ define link_rule
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 endef
 
-LIBS = libssmalloc.la
-libssmalloc_OBJS = talloc.lo  ssmalloc.lo #new_delete.lo
+LIBS = libstalloc.la
+libstalloc_OBJS = src/stalloc.lo src/stack.lo #new_delete.lo
 
 %.lo: %.c
 	$(call compile_rule)
 %.lo: %.cpp
 	$(call cxx_compile_rule)
 
-all: libssmalloc.la
+all: libstalloc.la cmxchg cmxcghq
 
-libssmalloc.la: $(libssmalloc_OBJS)
+libstalloc.la: $(libstalloc_OBJS)
 	$(call link_rule)
-	cp .libs/libssmalloc.so ./
-	cp .libs/libssmalloc.a ./
+	cp .libs/libstalloc.so ./
+	cp .libs/libstalloc.a ./
 
 install/%.la: %.la
 	libtool --mode=install \
